@@ -24,6 +24,7 @@ use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 
 /**
@@ -247,6 +248,7 @@ class AjaxController extends CommonController
         $id             = InputHelper::int($request->request->get('id'));
         $customToggle   = InputHelper::clean($request->request->get('customToggle'));
         $model          = $this->getModel($name);
+        $status         = Response::HTTP_OK;
 
         $post = $request->request->all();
         unset($post['model'], $post['id'], $post['action']);
@@ -303,10 +305,15 @@ class AjaxController extends CommonController
                     );
                     $dataArray['statusHtml'] = $html;
                 }
+            } else {
+                $this->addFlash('mautic.core.error.access.denied');
+                $status = Response::HTTP_FORBIDDEN;
             }
         }
 
-        return $this->sendJsonResponse($dataArray);
+        $dataArray['flashes'] = $this->getFlashContent();
+
+        return $this->sendJsonResponse($dataArray, $status);
     }
 
     /**
@@ -665,30 +672,6 @@ class AjaxController extends CommonController
         $dataArray['redirect'] = $this->get('router')->generate('mautic_core_update');
 
         return $this->sendJsonResponse($dataArray);
-    }
-
-    /**
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
-    protected function updateUserStatusAction(Request $request)
-    {
-        $status = InputHelper::clean($request->request->get('status'));
-
-        /** @var \Mautic\UserBundle\Model\UserModel $model */
-        $model = $this->getModel('user');
-
-        $currentStatus = $this->user->getOnlineStatus();
-        if (!in_array($currentStatus, ['manualaway', 'dnd'])) {
-            if ($status == 'back') {
-                $status = 'online';
-            }
-
-            $model->setOnlineStatus($status);
-        }
-
-        return $this->sendJsonResponse(['success' => 1]);
     }
 
     /**
