@@ -25,7 +25,6 @@ use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccess;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class AjaxController.
@@ -45,11 +44,11 @@ class AjaxController extends CommonController
     {
         $response = new JsonResponse();
 
-        if ($this->container->getParameter('kernel.environment') == 'dev' && $addIgnoreWdt) {
+        if ('dev' == $this->container->getParameter('kernel.environment') && $addIgnoreWdt) {
             $dataArray['ignore_wdt'] = 1;
         }
 
-        if ($statusCode !== null) {
+        if (null !== $statusCode) {
             $response->setStatusCode($statusCode);
         }
 
@@ -75,19 +74,19 @@ class AjaxController extends CommonController
         }
 
         if ($authenticationChecker->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-            if (strpos($action, ':') !== false) {
+            if (false !== strpos($action, ':')) {
                 //call the specified bundle's ajax action
                 $parts     = explode(':', $action);
                 $namespace = 'Mautic';
                 $isPlugin  = false;
 
-                if (count($parts) == 3 && $parts['0'] == 'plugin') {
+                if (3 == count($parts) && 'plugin' == $parts['0']) {
                     $namespace = 'MauticPlugin';
                     array_shift($parts);
                     $isPlugin = true;
                 }
 
-                if (count($parts) == 2) {
+                if (2 == count($parts)) {
                     $bundleName = $parts[0];
                     $bundle     = ucfirst($bundleName);
                     $action     = $parts[1];
@@ -120,9 +119,8 @@ class AjaxController extends CommonController
     }
 
     /**
-     * @param         $action
-     * @param Request $request
-     * @param null    $bundle
+     * @param      $action
+     * @param null $bundle
      *
      * @return JsonResponse
      */
@@ -136,8 +134,6 @@ class AjaxController extends CommonController
     }
 
     /**
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     protected function globalSearchAction(Request $request)
@@ -158,8 +154,6 @@ class AjaxController extends CommonController
     }
 
     /**
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     protected function commandListAction(Request $request)
@@ -172,13 +166,13 @@ class AjaxController extends CommonController
             if (is_array($c)) {
                 foreach ($c as $subc) {
                     $command = $translator->trans($k);
-                    $command = (strpos($command, ':') === false) ? $command.':' : $command;
+                    $command = (false === strpos($command, ':')) ? $command.':' : $command;
 
                     $dataArray[$command.$translator->trans($subc)] = ['value' => $command.$translator->trans($subc)];
                 }
             } else {
                 $command = $translator->trans($c);
-                $command = (strpos($command, ':') === false) ? $command.':' : $command;
+                $command = (false === strpos($command, ':')) ? $command.':' : $command;
 
                 $dataArray[$command] = ['value' => $command];
             }
@@ -189,8 +183,6 @@ class AjaxController extends CommonController
     }
 
     /**
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     protected function globalCommandListAction(Request $request)
@@ -209,7 +201,7 @@ class AjaxController extends CommonController
             foreach ($commands as $k => $c) {
                 if (is_array($c)) {
                     $command = $translator->trans($k);
-                    $command = (strpos($command, ':') === false) ? $command.':' : $command;
+                    $command = (false === strpos($command, ':')) ? $command.':' : $command;
 
                     foreach ($c as $subc) {
                         $subcommand = $command.$translator->trans($subc);
@@ -220,7 +212,7 @@ class AjaxController extends CommonController
                     }
                 } else {
                     $command = $translator->trans($k);
-                    $command = (strpos($command, ':') === false) ? $command.':' : $command;
+                    $command = (false === strpos($command, ':')) ? $command.':' : $command;
 
                     if (!in_array($command, $dupChecker)) {
                         $dataArray[]  = ['value' => $command];
@@ -237,8 +229,6 @@ class AjaxController extends CommonController
     }
 
     /**
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     protected function togglePublishStatusAction(Request $request)
@@ -248,7 +238,6 @@ class AjaxController extends CommonController
         $id             = InputHelper::int($request->request->get('id'));
         $customToggle   = InputHelper::clean($request->request->get('customToggle'));
         $model          = $this->getModel($name);
-        $status         = Response::HTTP_OK;
 
         $post = $request->request->all();
         unset($post['model'], $post['id'], $post['action']);
@@ -259,7 +248,7 @@ class AjaxController extends CommonController
         }
 
         $entity = $model->getEntity($id);
-        if ($entity !== null) {
+        if (null !== $entity) {
             $permissionBase = $model->getPermissionBase();
             $security       = $this->get('mautic.security');
             $createdBy      = (method_exists($entity, 'getCreatedBy')) ? $entity->getCreatedBy() : null;
@@ -305,21 +294,14 @@ class AjaxController extends CommonController
                     );
                     $dataArray['statusHtml'] = $html;
                 }
-            } else {
-                $this->addFlash('mautic.core.error.access.denied');
-                $status = Response::HTTP_FORBIDDEN;
             }
         }
 
-        $dataArray['flashes'] = $this->getFlashContent();
-
-        return $this->sendJsonResponse($dataArray, $status);
+        return $this->sendJsonResponse($dataArray);
     }
 
     /**
      * Unlock an entity locked by the current user.
-     *
-     * @param Request $request
      *
      * @return JsonResponse
      */
@@ -335,7 +317,7 @@ class AjaxController extends CommonController
 
         if (method_exists($entity, 'getCheckedOutBy')) {
             $checkedOut = $entity->getCheckedOutBy();
-            if ($entity !== null && !empty($checkedOut) && $checkedOut === $currentUser->getId()) {
+            if (null !== $entity && !empty($checkedOut) && $checkedOut === $currentUser->getId()) {
                 //entity exists, is checked out, and is checked out by the current user so go ahead and unlock
                 $model->unlockEntity($entity, $extra);
                 $dataArray['success'] = 1;
@@ -347,8 +329,6 @@ class AjaxController extends CommonController
 
     /**
      * Sets the page layout to the update layout.
-     *
-     * @param Request $request
      *
      * @return JsonResponse
      */
@@ -370,8 +350,6 @@ class AjaxController extends CommonController
 
     /**
      * Downloads the update package.
-     *
-     * @param Request $request
      *
      * @return JsonResponse
      */
@@ -415,8 +393,6 @@ class AjaxController extends CommonController
     /**
      * Extracts the update package.
      *
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     protected function updateExtractPackageAction(Request $request)
@@ -434,7 +410,7 @@ class AjaxController extends CommonController
         $zipper  = new \ZipArchive();
         $archive = $zipper->open($zipFile);
 
-        if ($archive !== true) {
+        if (true !== $archive) {
             // Get the exact error
             switch ($archive) {
                 case \ZipArchive::ER_EXISTS:
@@ -497,8 +473,6 @@ class AjaxController extends CommonController
     /**
      * Migrate the database to the latest version.
      *
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     public function updateDatabaseMigrationAction(Request $request)
@@ -551,7 +525,7 @@ class AjaxController extends CommonController
             if (!isset($result['error'])) {
                 foreach ($supportedLanguages as $locale => $name) {
                     // We don't need to update en_US, that comes with the main package
-                    if ($locale == 'en_US') {
+                    if ('en_US' == $locale) {
                         continue;
                     }
 
@@ -571,7 +545,7 @@ class AjaxController extends CommonController
             $env  = $this->factory->getEnvironment();
             $args = ['console', 'doctrine:migrations:migrate', '--no-interaction', '--env='.$env];
 
-            if ($env == 'prod') {
+            if ('prod' == $env) {
                 $args[] = '--no-debug';
             }
 
@@ -589,7 +563,7 @@ class AjaxController extends CommonController
             $result = $application->run($input, $output);
         }
 
-        if ($result !== 0) {
+        if (0 !== $result) {
             // Log the output
             $outputBuffer = trim(preg_replace('/\n\s*\n/s', ' \\ ', $output->fetch()));
             $outputBuffer = preg_replace('/\s\s+/', ' ', trim($outputBuffer));
@@ -633,8 +607,6 @@ class AjaxController extends CommonController
     /**
      * Finalize update.
      *
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     public function updateFinalizationAction(Request $request)
@@ -675,32 +647,6 @@ class AjaxController extends CommonController
     }
 
     /**
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
-    protected function updateUserStatusAction(Request $request)
-    {
-        $status = InputHelper::clean($request->request->get('status'));
-
-        /** @var \Mautic\UserBundle\Model\UserModel $model */
-        $model = $this->getModel('user');
-
-        $currentStatus = $this->user->getOnlineStatus();
-        if (!in_array($currentStatus, ['manualaway', 'dnd'])) {
-            if ($status == 'back') {
-                $status = 'online';
-            }
-
-            $model->setOnlineStatus($status);
-        }
-
-        return $this->sendJsonResponse(['success' => 1]);
-    }
-
-    /**
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     protected function clearNotificationAction(Request $request)
@@ -715,8 +661,6 @@ class AjaxController extends CommonController
     }
 
     /**
-     * @param Request $request
-     *
      * @return JsonResponse
      */
     protected function getBuilderTokensAction(Request $request)
@@ -733,8 +677,6 @@ class AjaxController extends CommonController
 
     /**
      * Fetch remote data store.
-     *
-     * @param Request $request
      *
      * @return JsonResponse
      */
@@ -780,8 +722,6 @@ class AjaxController extends CommonController
 
     /**
      * Fetch IP Lookup form.
-     *
-     * @param Request $request
      *
      * @return JsonResponse
      */
