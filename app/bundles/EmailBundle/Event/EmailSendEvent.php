@@ -14,6 +14,7 @@ namespace Mautic\EmailBundle\Event;
 use Mautic\CoreBundle\Event\CommonEvent;
 use Mautic\EmailBundle\Entity\Email;
 use Mautic\EmailBundle\Helper\MailHelper;
+use Mautic\EmailBundle\Helper\PlainTextHelper;
 use Mautic\LeadBundle\Entity\Lead;
 
 /**
@@ -200,6 +201,9 @@ class EmailSendEvent extends CommonEvent
         } else {
             $this->content = $content;
         }
+        if ($content !== '') {
+            $this->setGeneratedPlainText();
+        }
     }
 
     /**
@@ -225,6 +229,24 @@ class EmailSendEvent extends CommonEvent
             $this->helper->setPlainText($content);
         } else {
             $this->plainText = $content;
+        }
+        if ($content === '') {
+            $this->setGeneratedPlainText();
+        }
+    }
+
+    /**
+     *
+     */
+    private function setGeneratedPlainText()
+    {
+        $htmlContent = $this->getContent();
+        if ($this->getPlainText() === '' && $htmlContent !== ''){
+            $parser = new PlainTextHelper();
+            $generatedPlainText = $parser->setHtml($htmlContent)->getText();
+            if($generatedPlainText !== ''){
+                $this->setPlainText($generatedPlainText);
+            }
         }
     }
 
